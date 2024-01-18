@@ -8,6 +8,7 @@ from bullet import Bullet
 from alien import Alien
 from game_stats import GameStats
 from button import Button
+from scoreboard import Scoreboard
 
 class AlienInvasion:
     
@@ -32,6 +33,9 @@ class AlienInvasion:
 
         #insatnce of game_stats
         self.stats = GameStats(self)
+
+        #instance of scoreboard "sb"
+        self.sb = Scoreboard(self)
 
         #instance of ship class
         self.ship = Ship(self)
@@ -96,6 +100,10 @@ class AlienInvasion:
 
             self._create_fleet()
             self.ship.center_ship()
+            self.sb.prep_score()
+            self.sb.prep_level()
+            self.sb.prep_ships()
+
             #hide the cursor while game active
             pygame.mouse.set_visible(False)
 
@@ -138,10 +146,21 @@ class AlienInvasion:
         collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
         """ groupcollide() stores the key value pairs to the dictionary."""
 
+        if collisions:
+            for aliens in collisions.values():
+                self.stats.score += self.settings.alien_points * len(aliens)
+            self.sb.prep_score()
+            self.sb.check_high_score()
+
         if not self.aliens:
             self.bullets.empty()
             self._create_fleet()
             self.settings.increase_speed()
+
+            #Increases level
+            self.stats.level += 1
+            self.sb.prep_level()
+
     
     #create fleet of aliens
     def _create_fleet(self):
@@ -183,6 +202,7 @@ class AlienInvasion:
         if self.stats.ships_left > 0:
             self.stats.ships_left -= 1
 
+            self.sb.prep_ships()
             self.bullets.empty()
             self.aliens.empty()
 
@@ -207,7 +227,7 @@ class AlienInvasion:
 
         #ship collision
         if pygame.sprite.spritecollideany(self.ship, self.aliens):
-            print("Ship hit!!!")
+            # print("Ship hit!!!") 
             self._ship_hit()
 
         #alien reach the bottom
@@ -228,6 +248,8 @@ class AlienInvasion:
         self.ship.blitme()
 
         self.aliens.draw(self.screen)
+
+        self.sb.show_score()
 
         #draw button in inactive state
         if not self.game_active:
