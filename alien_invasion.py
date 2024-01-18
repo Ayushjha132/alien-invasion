@@ -7,6 +7,7 @@ from ship import Ship
 from bullet import Bullet
 from alien import Alien
 from game_stats import GameStats
+from button import Button
 
 class AlienInvasion:
     
@@ -37,10 +38,14 @@ class AlienInvasion:
         
         self.bullets = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
+        
         self._create_fleet()
 
-        #alien invasion in active state
-        self.game_active = True
+        #start game in inactive state
+        self.game_active = False
+
+        #button instance
+        self.play_button = Button(self, "Play")
     
     
     # the gae willl be controlled by run_game method.
@@ -56,22 +61,45 @@ class AlienInvasion:
                 self.bullets.update()
                 self._update_bullets()
                 self._update_aliens()
-                self._update_screen()
+            
+            self._update_screen()
 
-                #60 fps 
-                self.clock.tick(60)
+            #60 fps 
+            self.clock.tick(60)
 
     def _check_events(self):
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        sys.exit()
-                    elif event.type == pygame.KEYDOWN:
-                        self._check_keydown_events(event)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
 
-                    elif event.type == pygame.KEYUP:
-                        self._check_keyup_events(event)
-                        
-                        
+            elif event.type == pygame.KEYDOWN:
+                self._check_keydown_events(event)
+
+            elif event.type == pygame.KEYUP:
+                self._check_keyup_events(event)
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                self._check_play_button(mouse_pos)
+
+    def _check_play_button(self, mouse_pos):
+        
+        button_clicked = self.play_button.rect.collidepoint(mouse_pos)
+        if button_clicked and not self.game_active:
+            self.settings.initialize_dynamic_settings()
+            
+            self.stats.reset_stats()
+            self.game_active = True
+
+            self.bullets.empty()
+            self.aliens.empty()
+
+            self._create_fleet()
+            self.ship.center_ship()
+            #hide the cursor while game active
+            pygame.mouse.set_visible(False)
+
+
     # response to key presses        
     def _check_keydown_events(self, event):
         if event.key == pygame.K_RIGHT:
@@ -113,6 +141,7 @@ class AlienInvasion:
         if not self.aliens:
             self.bullets.empty()
             self._create_fleet()
+            self.settings.increase_speed()
     
     #create fleet of aliens
     def _create_fleet(self):
@@ -163,8 +192,9 @@ class AlienInvasion:
             sleep(0.5)
         else:
             self.game_active = False
+            pygame.mouse.set_visible(True)
 
-    """when alien touch the bottom will be treated as ship hit"""
+        """when alien touch the bottom will be treated as ship hit"""
     def _check_alien_bottom(self):
         for alien in self.aliens.sprites():
             if alien.rect.bottom >= self.settings.screen_height:
@@ -198,9 +228,14 @@ class AlienInvasion:
         self.ship.blitme()
 
         self.aliens.draw(self.screen)
+
+        #draw button in inactive state
+        if not self.game_active:
+            self.play_button.draw_button()
                 
         #bring the pygame tab in the front
         pygame.display.flip()
+
 
 
 
